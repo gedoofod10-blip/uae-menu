@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>منيو الطلبات السريع</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <style>body { font-family: 'Tajawal', sans-serif; }</style>
+</head>
+<body class="bg-slate-50 text-slate-800 pb-28">
+
+  <!-- الهيدر -->
+  <header class="bg-emerald-900 text-white p-6 rounded-b-3xl shadow-lg text-center">
+    <span class="bg-amber-400 text-emerald-950 text-xs font-bold px-3 py-1 rounded-full">توصيل سريع لجميع إمارات الدولة 🇦🇪</span>
+    <h1 id="storeName" class="text-2xl font-extrabold mt-3">دار الأصالة للحلويات والقهوة</h1>
+    <p id="storeBio" class="text-emerald-200 text-sm mt-1">اطلب الآن خلال ثوانٍ ويصلك طلبك لباب البيت</p>
+  </header>
+
+  <!-- قائمة المنتجات -->
+  <main class="max-w-md mx-auto p-4 space-y-4">
+    <h2 class="font-bold text-lg text-slate-700 border-r-4 border-emerald-700 pr-2">قائمة الأصناف الأكثر طلباً</h2>
+    <div id="productsList" class="space-y-3"></div>
+
+    <!-- بيانات العميل والسلة -->
+    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mt-6 space-y-4">
+      <h2 class="font-bold text-lg text-slate-800">تفاصيل التوصيل والفاتورة</h2>
+      
+      <input id="custName" type="text" placeholder="الاسم الكريم" class="w-full p-3 rounded-xl bg-slate-100 border border-slate-200 text-sm focus:outline-emerald-600">
+      
+      <select id="emirate" onchange="renderCart()" class="w-full p-3 rounded-xl bg-slate-100 border border-slate-200 text-sm focus:outline-emerald-600">
+        <option value="20|دبي">دبي (توصيل 20 د.إ)</option>
+        <option value="25|الشارقة">الشارقة (توصيل 25 د.إ)</option>
+        <option value="25|عجمان">عجمان (توصيل 25 د.إ)</option>
+        <option value="30|أبوظبي">أبوظبي (توصيل 30 د.إ)</option>
+        <option value="30|العين">العين (توصيل 30 د.إ)</option>
+        <option value="30|رأس الخيمة">رأس الخيمة (توصيل 30 د.إ)</option>
+        <option value="30|الفجيرة">الفجيرة (توصيل 30 د.إ)</option>
+        <option value="30|أم القيوين">أم القيوين (توصيل 30 د.إ)</option>
+        <option value="50|المنطقة الغربية">المنطقة الغربية (توصيل 50 د.إ)</option>
+      </select>
+
+      <input id="custAddress" type="text" placeholder="المنطقة / رقم الفيلا أو البناية" class="w-full p-3 rounded-xl bg-slate-100 border border-slate-200 text-sm focus:outline-emerald-600">
+      <input id="custNotes" type="text" placeholder="ملاحظات إضافية (اختياري)" class="w-full p-3 rounded-xl bg-slate-100 border border-slate-200 text-sm focus:outline-emerald-600">
+
+      <div class="border-t pt-3 space-y-1 text-sm">
+        <div class="flex justify-between"><span>قيمة الطلبات:</span><span id="subTotal" class="font-bold">0 د.إ</span></div>
+        <div class="flex justify-between text-slate-500"><span>رسوم التوصيل:</span><span id="deliveryFee">20 د.إ</span></div>
+        <div class="flex justify-between text-lg font-extrabold text-emerald-800 pt-2 border-t">
+          <span>الإجمالي النهائي:</span><span id="grandTotal">0 د.إ</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- زر الإرسال العائم -->
+  <div class="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur border-t max-w-md mx-auto">
+    <button onclick="sendOrder()" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3.5 rounded-xl shadow-lg flex justify-center items-center gap-2 transition">
+      <span>إرسال الطلب عبر واتساب</span>
+      <span id="btnTotal" class="bg-emerald-900 px-2.5 py-0.5 rounded-lg text-xs">0 د.إ</span>
+    </button>
+  </div>
+
+  <script>
+    // إعدادات المتجر (تتغير لكل عميل في ثوانٍ)
+    const WHATSAPP_NUMBER = "971500000000"; 
+    const PRODUCTS = [
+      { id: 1, name: "بوكس كوكيز بلجيكي فاخر (12 قطعة)", price: 85, desc: "محشو بالشوكولاتة البلجيكية الدافئة" },
+      { id: 2, name: "كيكة الزعفران بالحليب", price: 110, desc: "تكفي 6-8 أشخاص مع صوص الزعفران الأصلي" },
+      { id: 3, name: "قهوة مقطرة باردة (لتر كامل)", price: 65, desc: "بن كولومبي مختص محمص طازجاً" },
+      { id: 4, name: "بوكس جمعات الإمارات الملكي", price: 195, desc: "تشكيلة حلا مع دلة قهوة عربية جاهزة" }
+    ];
+
+    let cart = {};
+
+    function init() {
+      const container = document.getElementById('productsList');
+      container.innerHTML = PRODUCTS.map(p => `
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
+          <div class="pr-1">
+            <h3 class="font-bold text-slate-800 text-sm">${p.name}</h3>
+            <p class="text-xs text-slate-400 mt-0.5">${p.desc}</p>
+            <span class="inline-block mt-2 font-extrabold text-emerald-700 text-sm">${p.price} د.إ</span>
+          </div>
+          <div class="flex items-center gap-2 bg-slate-100 rounded-xl p-1">
+            <button onclick="updateQty(${p.id}, -1)" class="w-8 h-8 rounded-lg bg-white shadow text-slate-700 font-bold">-</button>
+            <span id="qty-${p.id}" class="w-6 text-center font-bold text-sm">0</span>
+            <button onclick="updateQty(${p.id}, 1)" class="w-8 h-8 rounded-lg bg-emerald-700 text-white shadow font-bold">+</button>
+          </div>
+        </div>
+      `).join('');
+      renderCart();
+    }
+
+    function updateQty(id, change) {
+      cart[id] = Math.max(0, (cart[id] || 0) + change);
+      document.getElementById(`qty-${id}`).innerText = cart[id];
+      renderCart();
+    }
+
+    function renderCart() {
+      let sub = 0;
+      PRODUCTS.forEach(p => { sub += (cart[p.id] || 0) * p.price; });
+      const [delivPrice] = document.getElementById('emirate').value.split('|');
+      const delivery = sub > 0 ? parseInt(delivPrice) : 0;
+      const total = sub + delivery;
+
+      document.getElementById('subTotal').innerText = sub + " د.إ";
+      document.getElementById('deliveryFee').innerText = delivery + " د.إ";
+      document.getElementById('grandTotal').innerText = total + " د.إ";
+      document.getElementById('btnTotal').innerText = total + " د.إ";
+    }
+
+    function sendOrder() {
+      let itemsText = "";
+      let sub = 0;
+      PRODUCTS.forEach(p => {
+        if (cart[p.id] > 0) {
+          const lineTotal = cart[p.id] * p.price;
+          sub += lineTotal;
+          itemsText += `▪️ ${cart[p.id]}x ${p.name} (${lineTotal} د.إ)%0A`;
+        }
+      });
+
+      if (sub === 0) return alert("الرجاء اختيار منتج واحد على الأقل لإتمام الطلب");
+      const name = document.getElementById('custName').value.trim();
+      const address = document.getElementById('custAddress').value.trim();
+      if (!name || !address) return alert("الرجاء كتابة الاسم والعنوان لتوصيل الطلب");
+
+      const [delivPrice, emirateName] = document.getElementById('emirate').value.split('|');
+      const notes = document.getElementById('custNotes').value.trim() || "لا يوجد";
+      const total = sub + parseInt(delivPrice);
+
+      const msg = `*طلب جديد من المنيو الإلكتروني*%0A------------------%0A${itemsText}------------------%0A*الاسم:* ${name}%0A*الإمارة:* ${emirateName}%0A*العنوان:* ${address}%0A*ملاحظات:* ${notes}%0A------------------%0A*قيمة الطلب:* ${sub} د.إ%0A*التوصيل:* ${delivPrice} د.إ%0A*الإجمالي المطلوب:* ${total} د.إ`;
+      window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, '_blank');
+    }
+
+    init();
+  </script>
+</body>
+</html>
