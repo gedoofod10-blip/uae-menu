@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>نظام المنيو الذكي - الإمارات</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <style>body { font-family: 'Tajawal', sans-serif; }</style>
+</head>
+<body class="bg-slate-50 text-slate-800 pb-28">
+
+  <!-- الهيدر -->
+  <header class="bg-emerald-900 text-white p-6 rounded-b-3xl shadow-lg relative">
+    <div class="max-w-md mx-auto flex justify-between items-center mb-3">
+      <span id="statusBadge" class="bg-amber-400 text-emerald-950 text-xs font-bold px-3 py-1 rounded-full">مفتوح للطلبات 🇦🇪</span>
+      <button onclick="toggleAdmin()" class="text-xs bg-emerald-800 hover:bg-emerald-700 px-3 py-1.5 rounded-xl border border-emerald-600">⚙️ لوحة الإدارة</button>
+    </div>
+    <div class="text-center">
+      <h1 id="uiStoreName" class="text-2xl font-extrabold"></h1>
+      <p id="uiStoreBio" class="text-emerald-200 text-sm mt-1"></p>
+    </div>
+  </header>
+
+  <!-- لوحة تحكم الأدمن (مخفية افتراضياً) -->
+  <section id="adminPanel" class="hidden max-w-md mx-auto p-4">
+    <div class="bg-white p-5 rounded-2xl shadow-lg border-2 border-emerald-600 space-y-5">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h2 class="font-extrabold text-lg text-emerald-900">⚙️ لوحة تحكم التاجر</h2>
+        <button onclick="closeAdmin()" class="text-xs bg-slate-200 px-3 py-1 rounded-lg font-bold">إغلاق ✕</button>
+      </div>
+
+      <!-- إحصائيات سريعة -->
+      <div class="grid grid-cols-2 gap-3 text-center">
+        <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-100">
+          <span class="text-xs text-slate-500 block">عدد الأصناف</span>
+          <span id="statCount" class="font-extrabold text-xl text-emerald-800">0</span>
+        </div>
+        <div class="bg-amber-50 p-3 rounded-xl border border-amber-100">
+          <span class="text-xs text-slate-500 block">حالة المتجر</span>
+          <button id="toggleOpenBtn" onclick="toggleStoreOpen()" class="font-extrabold text-sm text-amber-900 underline mt-1"></button>
+        </div>
+      </div>
+
+      <!-- إعدادات المتجر -->
+      <div class="space-y-2">
+        <h3 class="font-bold text-sm text-slate-700">بيانات المتجر الأساسية</h3>
+        <input id="admName" type="text" placeholder="اسم المتجر" class="w-full p-2.5 rounded-xl bg-slate-100 text-sm border">
+        <input id="admBio" type="text" placeholder="وصف قصير للمتجر" class="w-full p-2.5 rounded-xl bg-slate-100 text-sm border">
+        <input id="admPhone" type="text" placeholder="رقم الواتساب (مثال: 971500000000)" class="w-full p-2.5 rounded-xl bg-slate-100 text-sm border">
+        <button onclick="saveSettings()" class="w-full bg-slate-800 text-white text-sm font-bold py-2.5 rounded-xl">حفظ بيانات المتجر</button>
+      </div>
+
+      <!-- إضافة منتج جديد -->
+      <div class="space-y-2 border-t pt-4">
+        <h3 class="font-bold text-sm text-slate-700">إضافة صنف جديد للمنيو</h3>
+        <input id="newProdName" type="text" placeholder="اسم الصنف" class="w-full p-2.5 rounded-xl bg-slate-100 text-sm border">
+        <div class="flex gap-2">
+          <input id="newProdPrice" type="number" placeholder="السعر (د.إ)" class="w-1/3 p-2.5 rounded-xl bg-slate-100 text-sm border">
+          <input id="newProdDesc" type="text" placeholder="وصف سريع للصنف" class="w-2/3 p-2.5 rounded-xl bg-slate-100 text-sm border">
+        </div>
+        <button onclick="addProduct()" class="w-full bg-emerald-700 text-white text-sm font-bold py-2.5 rounded-xl">+ إضافة الصنف للمنيو</button>
+      </div>
+
+      <!-- إدارة المنتجات الحالية -->
+      <div class="space-y-2 border-t pt-4">
+        <h3 class="font-bold text-sm text-slate-700">الأصناف الحالية (تعديل / إخفاء)</h3>
+        <div id="adminProductsList" class="space-y-2 max-h-60 overflow-y-auto"></div>
+      </div>
+
+      <!-- مشاركة رابط المتجر المحدث -->
+      <div class="border-t pt-4">
+        <button onclick="copyShareLink()" class="w-full bg-amber-500 hover:bg-amber-600 text-emerald-950 font-extrabold py-3 rounded-xl text-sm shadow">
+          🔗 نسخ رابط المتجر المحدث للعملاء
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- واجهة الزبون -->
+  <main id="customerView" class="max-w-md mx-auto p-4 space-y-4">
+    <h2 class="font-bold text-lg text-slate-700 border-r-4 border-emerald-700 pr-2">قائمة الأصناف</h2>
+    <div id="productsList" class="space-y-3"></div>
+
+    <!-- بيانات العميل والسلة -->
+    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mt-6 space-y-4">
+      <h2 class="font-bold text-lg text-slate-800">تفاصيل التوصيل والفاتورة</h2>
+      <input id="custName" type="text" placeholder="الاسم الكريم" class="w-full p-3 rounded-xl bg-slate-100 border text-sm">
+      <select id="emirate" onchange="renderCart()" class="w-full p-3 rounded-xl bg-slate-100 border text-sm">
+        <option value="20|دبي">دبي (توصيل 20 د.إ)</option>
+        <option value="25|الشارقة">الشارقة (توصيل 25 د.إ)</option>
+        <option value="25|عجمان">عجمان (توصيل 25 د.إ)</option>
+        <option value="30|أبوظبي">أبوظبي (توصيل 30 د.إ)</option>
+        <option value="30|العين">العين (توصيل 30 د.إ)</option>
+        <option value="30|رأس الخيمة">رأس الخيمة (توصيل 30 د.إ)</option>
+        <option value="30|الفجيرة">الفجيرة (توصيل 30 د.إ)</option>
+        <option value="30|أم القيوين">أم القيوين (توصيل 30 د.إ)</option>
+      </select>
+      <input id="custAddress" type="text" placeholder="المنطقة / رقم الفيلا أو البناية" class="w-full p-3 rounded-xl bg-slate-100 border text-sm">
+      <input id="custNotes" type="text" placeholder="ملاحظات إضافية (اختياري)" class="w-full p-3 rounded-xl bg-slate-100 border text-sm">
+
+      <div class="border-t pt-3 space-y-1 text-sm">
+        <div class="flex justify-between"><span>قيمة الطلبات:</span><span id="subTotal" class="font-bold">0 د.إ</span></div>
+        <div class="flex justify-between text-slate-500"><span>رسوم التوصيل:</span><span id="deliveryFee">20 د.إ</span></div>
+        <div class="flex justify-between text-lg font-extrabold text-emerald-800 pt-2 border-t">
+          <span>الإجمالي النهائي:</span><span id="grandTotal">0 د.إ</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- زر الإرسال العائم -->
+  <div class="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur border-t max-w-md mx-auto">
+    <button onclick="sendOrder()" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3.5 rounded-xl shadow-lg flex justify-center items-center gap-2">
+      <span>إرسال الطلب عبر واتساب</span>
+      <span id="btnTotal" class="bg-emerald-900 px-2.5 py-0.5 rounded-lg text-xs">0 د.إ</span>
+    </button>
+  </div>
+
+  <script>
+    const ADMIN_PIN = "1234";
+    const DEFAULT_DATA = {
+      name: "دار الأصالة للحلويات والقهوة",
+      bio: "اطلب الآن خلال ثوانٍ ويصلك طلبك لباب البيت",
+      phone: "971500000000",
+      isOpen: true,
+      products: [
+        { id: 1, name: "بوكس كوكيز بلجيكي فاخر (12 قطعة)", price: 85, desc: "محشو بالشوكولاتة البلجيكية الدافئة", available: true },
+        { id: 2, name: "كيكة الزعفران بالحليب", price: 110, desc: "تكفي 6-8 أشخاص مع صوص الزعفران الأصلي", available: true },
+        { id: 3, name: "قهوة مقطرة باردة (لتر كامل)", price: 65, desc: "بن كولومبي مختص محمص طازجاً", available: true }
+      ]
+    };
+
+    let store = loadStore();
+    let cart = {};
+
+    function loadStore() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('s')) {
+        try { return JSON.parse(decodeURIComponent(params.get('s'))); } catch(e) {}
+      }
+      const saved = localStorage.getItem('uae_saas_store');
+      return saved ? JSON.parse(saved) : DEFAULT_DATA;
+    }
+
+    function saveStore() {
+      localStorage.setItem('uae_saas_store', JSON.stringify(store));
+      renderAll();
+    }
+
+    function renderAll() {
+      document.getElementById('uiStoreName').innerText = store.name;
+      document.getElementById('uiStoreBio').innerText = store.bio;
+      
+      const badge = document.getElementById('statusBadge');
+      badge.innerText = store.isOpen ? "مفتوح للطلبات 🇦🇪" : "مغلق حالياً ⛔";
+      badge.className = store.isOpen ? "bg-amber-400 text-emerald-950 text-xs font-bold px-3 py-1 rounded-full" : "bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full";
+
+      // عرض المنتجات للعميل
+      const container = document.getElementById('productsList');
+      container.innerHTML = store.products.map(p => `
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center ${!p.available ? 'opacity-50' : ''}">
+          <div class="pr-1">
+            <h3 class="font-bold text-slate-800 text-sm">${p.name}</h3>
+            <p class="text-xs text-slate-400 mt-0.5">${p.desc}</p>
+            <span class="inline-block mt-2 font-extrabold text-emerald-700 text-sm">${p.price} د.إ</span>
+          </div>
+          ${p.available ? `
+          <div class="flex items-center gap-2 bg-slate-100 rounded-xl p-1">
+            <button onclick="updateQty(${p.id}, -1)" class="w-8 h-8 rounded-lg bg-white shadow font-bold">-</button>
+            <span class="w-6 text-center font-bold text-sm">${cart[p.id] || 0}</span>
+            <button onclick="updateQty(${p.id}, 1)" class="w-8 h-8 rounded-lg bg-emerald-700 text-white shadow font-bold">+</button>
+          </div>` : `<span class="text-xs bg-red-100 text-red-700 font-bold px-2.5 py-1 rounded-lg">نفذت الكمية</span>`}
+        </div>
+      `).join('');
+
+      // تحديث لوحة الأدمن
+      document.getElementById('statCount').innerText = store.products.length;
+      document.getElementById('toggleOpenBtn').innerText = store.isOpen ? "مفتوح (اضغط للإغلاق)" : "مغلق (اضغط للفتح)";
+      document.getElementById('admName').value = store.name;
+      document.getElementById('admBio').value = store.bio;
+      document.getElementById('admPhone').value = store.phone;
+
+      document.getElementById('adminProductsList').innerHTML = store.products.map(p => `
+        <div class="flex justify-between items-center bg-slate-50 p-2.5 rounded-xl border text-xs">
+          <div>
+            <p class="font-bold text-slate-800">${p.name} (${p.price} د.إ)</p>
+          </div>
+          <div class="flex gap-1">
+            <button onclick="toggleProd(${p.id})" class="px-2 py-1 rounded font-bold ${p.available ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}">
+              ${p.available ? 'إيقاف' : 'تفعيل'}
+            </button>
+            <button onclick="deleteProd(${p.id})" class="bg-red-100 text-red-700 px-2 py-1 rounded font-bold">حذف</button>
+          </div>
+        </div>
+      `).join('');
+
+      renderCart();
+    }
+
+    function toggleAdmin() {
+      const panel = document.getElementById('adminPanel');
+      if (panel.classList.contains('hidden')) {
+        const pin = prompt("أدخل رمز الإدارة السري (الافتراضي 1234):");
+        if (pin === ADMIN_PIN) panel.classList.remove('hidden');
+        else if (pin !== null) alert("الرمز غير صحيح!");
+      } else {
+        panel.classList.add('hidden');
+      }
+    }
+
+    function closeAdmin() { document.getElementById('adminPanel').classList.add('hidden'); }
+
+    function saveSettings() {
+      store.name = document.getElementById('admName').value.trim() || store.name;
+      store.bio = document.getElementById('admBio').value.trim() || store.bio;
+      store.phone = document.getElementById('admPhone').value.trim() || store.phone;
+      saveStore();
+      alert("تم حفظ إعدادات المتجر بنجاح!");
+    }
+
+    function toggleStoreOpen() {
+      store.isOpen = !store.isOpen;
+      saveStore();
+    }
+
+    function addProduct() {
+      const name = document.getElementById('newProdName').value.trim();
+      const price = parseFloat(document.getElementById('newProdPrice').value);
+      const desc = document.getElementById('newProdDesc').value.trim();
+      if (!name || !price) return alert("الرجاء إدخال اسم الصنف والسعر");
+      store.products.push({ id: Date.now(), name, price, desc, available: true });
+      document.getElementById('newProdName').value = '';
+      document.getElementById('newProdPrice').value = '';
+      document.getElementById('newProdDesc').value = '';
+      saveStore();
+    }
+
+    function toggleProd(id) {
+      const p = store.products.find(x => x.id === id);
+      if (p) { p.available = !p.available; cart[id] = 0; saveStore(); }
+    }
+
+    function deleteProd(id) {
+      store.products = store.products.filter(x => x.id !== id);
+      delete cart[id];
+      saveStore();
+    }
+
+    function copyShareLink() {
+      const url = window.location.origin + window.location.pathname + "?s=" + encodeURIComponent(JSON.stringify(store));
+      navigator.clipboard.writeText(url).then(() => alert("تم نسخ رابط المتجر المحدث! يمكنك وضعه في بايو الإنستغرام أو إرساله للعميل."));
+    }
+
+    function updateQty(id, change) {
+      if (!store.isOpen) return alert("المتجر مغلق حالياً لاستقبال الطلبات");
+      cart[id] = Math.max(0, (cart[id] || 0) + change);
+      renderAll();
+    }
+
+    function renderCart() {
+      let sub = 0;
+      store.products.forEach(p => { if (p.available) sub += (cart[p.id] || 0) * p.price; });
+      const [delivPrice] = document.getElementById('emirate').value.split('|');
+      const delivery = sub > 0 ? parseInt(delivPrice) : 0;
+      const total = sub + delivery;
+
+      document.getElementById('subTotal').innerText = sub + " د.إ";
+      document.getElementById('deliveryFee').innerText = delivery + " د.إ";
+      document.getElementById('grandTotal').innerText = total + " د.إ";
+      document.getElementById('btnTotal').innerText = total + " د.إ";
+    }
+
+    function sendOrder() {
+      if (!store.isOpen) return alert("عذراً، المتجر مغلق حالياً");
+      let itemsText = "", sub = 0;
+      store.products.forEach(p => {
+        if (p.available && cart[p.id] > 0) {
+          const lineTotal = cart[p.id] * p.price;
+          sub += lineTotal;
+          itemsText += `▪️ ${cart[p.id]}x ${p.name} (${lineTotal} د.إ)%0A`;
+        }
+      });
+
+      if (sub === 0) return alert("الرجاء اختيار منتج واحد على الأقل");
+      const name = document.getElementById('custName').value.trim();
+      const address = document.getElementById('custAddress').value.trim();
+      if (!name || !address) return alert("الرجاء كتابة الاسم والعنوان");
+
+      const [delivPrice, emirateName] = document.getElementById('emirate').value.split('|');
+      const notes = document.getElementById('custNotes').value.trim() || "لا يوجد";
+      const total = sub + parseInt(delivPrice);
+
+      const msg = `*طلب جديد - ${store.name}*%0A------------------%0A${itemsText}------------------%0A*الاسم:* ${name}%0A*الإمارة:* ${emirateName}%0A*العنوان:* ${address}%0A*ملاحظات:* ${notes}%0A------------------%0A*قيمة الطلب:* ${sub} د.إ%0A*التوصيل:* ${delivPrice} د.إ%0A*الإجمالي:* ${total} د.إ`;
+      window.open(`https://wa.me/${store.phone}?text=${msg}`, '_blank');
+    }
+
+    renderAll();
+  </script>
+</body>
+</html>
